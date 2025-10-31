@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Military History Quiz - Global Leaderboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #1e3c72;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+
+        .screen {
+            display: none;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        .difficulty-selector, .war-selector {
+            display: grid;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .btn {
+            padding: 20px;
+            font-size: 1.2em;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .question-container {
+            margin: 30px 0;
+        }
+
+        .question-text {
+            font-size: 1.5em;
+            color: #333;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 5px solid #667eea;
+        }
+
+        .answer-btn {
+            display: block;
+            width: 100%;
+            padding: 20px;
+            margin: 10px 0;
+            font-size: 1.1em;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: left;
+        }
+
+        .answer-btn:hover {
+            background: #f0f0f0;
+            border-color: #667eea;
+        }
+
+        .answer-btn.correct {
+            background: #d4edda;
+            border-color: #28a745;
+            animation: correctPulse 0.5s;
+        }
+
+        .answer-btn.incorrect {
+            background: #f8d7da;
+            border-color: #dc3545;
+            animation: shake 0.5s;
+        }
+
+        @keyframes correctPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .timer {
+            font-size: 1.5em;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+            color: #f39c12;
+        }
+
+        .progress {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 1.1em;
+            color: #666;
+        }
+
+        .score-display {
+            text-align: center;
+            font-size: 3em;
+            color: #28a745;
+            margin: 30px 0;
+        }
+
+        .message {
+            text-align: center;
+            font-size: 1.3em;
+            color: #666;
+            margin: 20px 0;
+        }
+
+        .leaderboard {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .leaderboard h3 {
+            color: #1e3c72;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .leaderboard-entry {
+            padding: 10px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .leaderboard-entry.highlight {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            margin-left: 10px;
+        }
+
+        .badge.easy { background: #d4edda; color: #155724; }
+        .badge.medium { background: #fff3cd; color: #856404; }
+        .badge.hard { background: #f8d7da; color: #721c24; }
+
+        .name-input {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.2em;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .name-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .loading {
+            text-align: center;
+            color: #999;
+            font-style: italic;
+            padding: 20px;
+        }
+
+        .trophy {
+            font-size: 2em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Welcome Screen -->
+        <div id="welcomeScreen" class="screen active">
+            <h1>⚔️ Military History Quiz ⚔️</h1>
+            <p style="text-align: center; font-size: 1.2em; margin: 20px 0; color: #666;">
+                Test your knowledge and compete on the GLOBAL leaderboard!
+            </p>
+            <input 
+                type="text" 
+                id="playerName" 
+                class="name-input" 
+                placeholder="Enter your name..."
+                maxlength="20"
+            >
+            <button class="btn" onclick="startGame()">Start Quiz</button>
+        </div>
+
+        <!-- Difficulty Selection -->
+        <div id="difficultyScreen" class="screen">
+            <h1>Choose Difficulty</h1>
+            <div class="difficulty-selector">
+                <button class="btn" onclick="setDifficulty('easy')">
+                    Easy - Basic Facts
+                </button>
+                <button class="btn" onclick="setDifficulty('medium')">
+                    Medium - Intermediate Knowledge
+                </button>
+                <button class="btn" onclick="setDifficulty('hard')">
+                    Hard - Expert Level
+                </button>
+            </div>
+        </div>
+
+        <!-- War Selection -->
+        <div id="warScreen" class="screen">
+            <h1>Choose Your War Era</h1>
+            <div class="war-selector">
+                <button class="btn" onclick="setWar('ww1')">World War I</button>
+                <button class="btn" onclick="setWar('ww2')">World War II</button>
+                <button class="btn" onclick="setWar('vietnam')">Vietnam War</button>
+                <button class="btn" onclick="setWar('mixed')">Mixed - All Eras</button>
+            </div>
+        </div>
+
+        <!-- Quiz Screen -->
+        <div id="quizScreen" class="screen">
+            <div class="progress" id="progress"></div>
+            <div class="timer" id="timer">Time: 30s</div>
+            <div class="question-container">
+                <div class="question-text" id="questionText"></div>
+                <div id="answersContainer"></div>
+            </div>
+        </div>
+
+        <!-- Results Screen -->
+        <div id="resultsScreen" class="screen">
+            <h1>Quiz Complete!</h1>
+            <div class="score-display" id="finalScore"></div>
+            <div class="message" id="resultMessage"></div>
+            
+            <div class="leaderboard">
+                <h3><span class="trophy">🏆</span> GLOBAL LEADERBOARD</h3>
+                <div id="globalLeaderboard" class="loading">Loading global scores...</div>
+            </div>
+
+            <button class="btn" onclick="restartQuiz()" style="margin-top: 20px;">
+                Play Again
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ⭐⭐⭐ PASTE YOUR GOOGLE SHEETS URL HERE! ⭐⭐⭐
+        const SHEET_API_URL = 'PASTE_YOUR_URL_HERE';
+        
+        let playerName = '';
+        let currentDifficulty = '';
+        let currentWar = '';
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let questions = [];
+        let timerInterval;
+        let timeLeft = 30;
+
+        // Question Database (same as before)
+        const questionBank = {
+            easy: {
+                ww1: [
+                    {q: "In which year did World War I begin?", a: ["1914", "1915", "1913", "1916"], correct: 0},
+                    {q: "What event triggered WWI?", a: ["Assassination of Archduke Franz Ferdinand", "Sinking of Lusitania", "Treaty of Versailles", "Battle of Verdun"], correct: 0},
+                    {q: "Which alliance included Germany in WWI?", a: ["Central Powers", "Allied Powers", "Triple Entente", "League of Nations"], correct: 0},
+                    {q: "What year did WWI end?", a: ["1918", "1917", "1919", "1920"], correct: 0},
+                    {q: "What was the main type of warfare in WWI?", a: ["Trench warfare", "Naval warfare", "Air warfare", "Guerrilla warfare"], correct: 0}
+                ],
+                ww2: [
+                    {q: "What year did World War II start?", a: ["1939", "1940", "1938", "1941"], correct: 0},
+                    {q: "Who was the leader of Nazi Germany?", a: ["Adolf Hitler", "Joseph Stalin", "Winston Churchill", "Benito Mussolini"], correct: 0},
+                    {q: "What date was Pearl Harbor attacked?", a: ["December 7, 1941", "December 8, 1941", "November 7, 1941", "January 7, 1942"], correct: 0},
+                    {q: "What was D-Day?", a: ["Allied invasion of Normandy", "Battle of Britain", "Pearl Harbor attack", "Atomic bombing of Japan"], correct: 0},
+                    {q: "When did WWII end in Europe?", a: ["May 8, 1945", "May 9, 1945", "June 6, 1944", "August 15, 1945"], correct: 0}
+                ],
+                vietnam: [
+                    {q: "What years was the Vietnam War?", a: ["1955-1975", "1960-1975", "1950-1970", "1965-1975"], correct: 0},
+                    {q: "Which country was South Vietnam's main ally?", a: ["United States", "France", "China", "Soviet Union"], correct: 0},
+                    {q: "What was the capital of North Vietnam?", a: ["Hanoi", "Saigon", "Da Nang", "Hue"], correct: 0},
+                    {q: "What trail was used to supply North Vietnamese forces?", a: ["Ho Chi Minh Trail", "Burma Road", "Appian Way", "Silk Road"], correct: 0},
+                    {q: "What was the Tet Offensive?", a: ["Major North Vietnamese attack", "Peace treaty", "US bombing campaign", "Military training program"], correct: 0}
+                ]
+            },
+            medium: {
+                ww1: [
+                    {q: "What was the name of Germany's plan to quickly defeat France?", a: ["Schlieffen Plan", "Barbarossa Plan", "Overlord Plan", "Market Garden"], correct: 0},
+                    {q: "Which battle was the longest of WWI?", a: ["Battle of Verdun", "Battle of Somme", "Battle of Ypres", "Battle of Tannenberg"], correct: 0},
+                    {q: "What technology was first used in large scale during WWI?", a: ["Chemical weapons", "Nuclear weapons", "Radar", "Guided missiles"], correct: 0},
+                    {q: "Which country switched sides from Central Powers to Allies?", a: ["Italy", "Bulgaria", "Ottoman Empire", "Austria-Hungary"], correct: 0},
+                    {q: "What was the Zimmermann Telegram?", a: ["German proposal to Mexico", "Declaration of war", "Peace treaty", "Military strategy document"], correct: 0}
+                ],
+                ww2: [
+                    {q: "What was Operation Barbarossa?", a: ["German invasion of Soviet Union", "Allied invasion of France", "Japanese attack on China", "Italian invasion of Greece"], correct: 0},
+                    {q: "Which battle stopped German advance in the East?", a: ["Battle of Stalingrad", "Battle of Kursk", "Battle of Moscow", "Battle of Berlin"], correct: 0},
+                    {q: "What was the Manhattan Project?", a: ["US atomic bomb program", "D-Day planning", "Pacific island hopping", "Strategic bombing campaign"], correct: 0},
+                    {q: "Who commanded Allied forces in Europe?", a: ["Dwight D. Eisenhower", "George Patton", "Bernard Montgomery", "Douglas MacArthur"], correct: 0},
+                    {q: "What was the significance of the Battle of Midway?", a: ["Turning point in Pacific", "End of European war", "First use of aircraft carriers", "Liberation of Philippines"], correct: 0}
+                ],
+                vietnam: [
+                    {q: "What was Operation Rolling Thunder?", a: ["US bombing campaign", "Ground invasion", "Naval blockade", "Peace negotiations"], correct: 0},
+                    {q: "What was the significance of the Tet Offensive?", a: ["Changed US public opinion", "Ended the war", "Liberated Saigon", "Started peace talks"], correct: 0},
+                    {q: "Who was the US president during most of the Vietnam War?", a: ["Lyndon B. Johnson", "John F. Kennedy", "Richard Nixon", "Gerald Ford"], correct: 0},
+                    {q: "What herbicide was widely used in Vietnam?", a: ["Agent Orange", "Napalm", "White Phosphorus", "Mustard Gas"], correct: 0},
+                    {q: "What was Vietnamization?", a: ["Transferring combat role to South Vietnam", "US escalation", "Peace treaty", "Bombing campaign"], correct: 0}
+                ]
+            },
+            hard: {
+                ww1: [
+                    {q: "Who commanded the British Expeditionary Force at the start of WWI?", a: ["Sir John French", "Douglas Haig", "Edmund Allenby", "Herbert Plumer"], correct: 0},
+                    {q: "What was the significance of the Battle of Tannenberg?", a: ["Decisive German victory in East", "French victory in West", "End of war", "Naval battle"], correct: 0},
+                    {q: "Which ship's sinking helped bring US into WWI?", a: ["RMS Lusitania", "USS Maine", "HMS Hood", "Bismarck"], correct: 0},
+                    {q: "What was the Ludendorff Offensive?", a: ["German spring offensive 1918", "Allied breakthrough", "Russian attack", "Italian offensive"], correct: 0},
+                    {q: "Who was the German Chief of Staff during most of WWI?", a: ["Erich Ludendorff", "Paul von Hindenburg", "Helmuth von Moltke", "Alfred von Schlieffen"], correct: 0}
+                ],
+                ww2: [
+                    {q: "What was the code name for the atomic bomb dropped on Hiroshima?", a: ["Little Boy", "Fat Man", "Trinity", "Gadget"], correct: 0},
+                    {q: "Which German general led the Afrika Korps?", a: ["Erwin Rommel", "Heinz Guderian", "Gerd von Rundstedt", "Wilhelm Keitel"], correct: 0},
+                    {q: "What was Operation Market Garden?", a: ["Failed Allied airborne operation", "D-Day invasion", "Battle of the Bulge", "Liberation of Paris"], correct: 0},
+                    {q: "Who commanded Japanese forces at Pearl Harbor?", a: ["Isoroku Yamamoto", "Hideki Tojo", "Tomoyuki Yamashita", "Tadamichi Kuribayashi"], correct: 0},
+                    {q: "What was the Enigma machine?", a: ["German encryption device", "Tank model", "Aircraft type", "Submarine"], correct: 0}
+                ],
+                vietnam: [
+                    {q: "What was the My Lai Massacre?", a: ["War crime by US troops", "North Vietnamese attack", "Battle victory", "Peace negotiation"], correct: 0},
+                    {q: "Who led the Viet Cong during the war?", a: ["Ho Chi Minh", "Ngo Dinh Diem", "Vo Nguyen Giap", "Le Duan"], correct: 0},
+                    {q: "What was the significance of the Gulf of Tonkin incident?", a: ["Led to US escalation", "Ended the war", "Peace treaty signed", "Ceasefire agreed"], correct: 0},
+                    {q: "What was Operation Linebacker II?", a: ["Christmas bombing campaign", "Ground offensive", "Evacuation operation", "Peace mission"], correct: 0},
+                    {q: "Who was the last US president involved in Vietnam War?", a: ["Gerald Ford", "Richard Nixon", "Jimmy Carter", "Lyndon Johnson"], correct: 0}
+                ]
+            }
+        };
+
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        function startGame() {
+            const nameInput = document.getElementById('playerName').value.trim();
+            if (!nameInput) {
+                alert('Please enter your name to compete on the leaderboard!');
+                return;
+            }
+            playerName = nameInput;
+            showScreen('difficultyScreen');
+        }
+
+        function setDifficulty(level) {
+            currentDifficulty = level;
+            showScreen('warScreen');
+        }
+
+        function setWar(war) {
+            currentWar = war;
+            loadQuestions();
+            startQuiz();
+        }
+
+        function loadQuestions() {
+            if (currentWar === 'mixed') {
+                questions = [
+                    ...questionBank[currentDifficulty].ww1.slice(0, 2),
+                    ...questionBank[currentDifficulty].ww2.slice(0, 2),
+                    ...questionBank[currentDifficulty].vietnam.slice(0, 1)
+                ];
+            } else {
+                questions = [...questionBank[currentDifficulty][currentWar]];
+            }
+            
+            questions = shuffleArray(questions);
+        }
+
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function startQuiz() {
+            currentQuestionIndex = 0;
+            score = 0;
+            showScreen('quizScreen');
+            showQuestion();
+            startTimer();
+        }
+
+        function showQuestion() {
+            const question = questions[currentQuestionIndex];
+            document.getElementById('progress').textContent = 
+                `Question ${currentQuestionIndex + 1} of ${questions.length}`;
+            document.getElementById('questionText').textContent = question.q;
+            
+            const container = document.getElementById('answersContainer');
+            container.innerHTML = '';
+            
+            const answersWithIndices = question.a.map((answer, index) => ({
+                text: answer,
+                originalIndex: index
+            }));
+            
+            const shuffledAnswers = shuffleArray(answersWithIndices);
+            
+            shuffledAnswers.forEach(answerObj => {
+                const btn = document.createElement('button');
+                btn.className = 'answer-btn';
+                btn.textContent = answerObj.text;
+                btn.onclick = () => checkAnswer(answerObj.originalIndex === question.correct);
+                container.appendChild(btn);
+            });
+            
+            resetTimer();
+        }
+
+        function checkAnswer(isCorrect) {
+            clearInterval(timerInterval);
+            const buttons = document.querySelectorAll('.answer-btn');
+            
+            buttons.forEach(btn => {
+                btn.disabled = true;
+                const answerText = btn.textContent;
+                const question = questions[currentQuestionIndex];
+                if (answerText === question.a[question.correct]) {
+                    btn.classList.add('correct');
+                } else if (btn === event.target) {
+                    btn.classList.add('incorrect');
+                }
+            });
+            
+            if (isCorrect) {
+                score++;
+            }
+            
+            setTimeout(() => {
+                currentQuestionIndex++;
+                if (currentQuestionIndex < questions.length) {
+                    showQuestion();
+                    startTimer();
+                } else {
+                    showResults();
+                }
+            }, 1500);
+        }
+
+        function startTimer() {
+            timeLeft = 30;
+            updateTimerDisplay();
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+                if (timeLeft <= 0) {
+                    checkAnswer(false);
+                }
+            }, 1000);
+        }
+
+        function resetTimer() {
+            clearInterval(timerInterval);
+            timeLeft = 30;
+            updateTimerDisplay();
+        }
+
+        function updateTimerDisplay() {
+            document.getElementById('timer').textContent = `Time: ${timeLeft}s`;
+            document.getElementById('timer').style.color = timeLeft <= 10 ? '#e74c3c' : '#f39c12';
+        }
+
+        async function showResults() {
+            clearInterval(timerInterval);
+            const percentage = Math.round((score / questions.length) * 100);
+            document.getElementById('finalScore').textContent = `${score} / ${questions.length}`;
+            
+            let message = '';
+            if (percentage >= 90) message = '🎖️ OUTSTANDING! You\'re a true military historian!';
+            else if (percentage >= 70) message = '⭐ EXCELLENT! You know your history!';
+            else if (percentage >= 50) message = '👍 GOOD JOB! Keep studying!';
+            else message = '📚 KEEP TRAINING! Every expert was once a beginner!';
+            
+            document.getElementById('resultMessage').textContent = message;
+            
+            showScreen('resultsScreen');
+            
+            // Save score to Google Sheets
+            await saveScoreToSheet(score, percentage);
+            
+            // Load and display global leaderboard
+            await loadGlobalLeaderboard();
+        }
+
+        async function saveScoreToSheet(finalScore, percentage) {
+            try {
+                const response = await fetch(SHEET_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/plain',
+                    },
+                    body: JSON.stringify({
+                        name: playerName,
+                        score: finalScore,
+                        total: questions.length,
+                        percentage: percentage,
+                        difficulty: currentDifficulty
+                    })
+                });
+                
+                const result = await response.json();
+                console.log('Score saved:', result);
+            } catch (error) {
+                console.error('Error saving score:', error);
+            }
+        }
+
+        async function loadGlobalLeaderboard() {
+            const container = document.getElementById('globalLeaderboard');
+            
+            try {
+                const response = await fetch(SHEET_API_URL);
+                const data = await response.json();
+                
+                if (data.status === 'success' && data.scores.length > 0) {
+                    container.innerHTML = data.scores.map((s, i) => {
+                        const isCurrentPlayer = s.name === playerName && s.percentage === Math.round((score / questions.length) * 100);
+                        return `
+                            <div class="leaderboard-entry ${isCurrentPlayer ? 'highlight' : ''}">
+                                <span>
+                                    <strong>#${i + 1}</strong> ${s.name} - ${s.score}/${s.total} (${s.percentage}%)
+                                    <span class="badge ${s.difficulty}">${s.difficulty}</span>
+                                </span>
+                                <span style="color: #999; font-size: 0.9em;">${s.date}</span>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    container.innerHTML = '<p style="text-align: center; color: #999;">No scores yet. Be the first!</p>';
+                }
+            } catch (error) {
+                console.error('Error loading leaderboard:', error);
+                container.innerHTML = '<p style="text-align: center; color: #dc3545;">Error loading leaderboard. Check your API URL.</p>';
+            }
+        }
+
+        function restartQuiz() {
+            showScreen('welcomeScreen');
+            document.getElementById('playerName').value = playerName;
+        }
+    </script>
+</body>
+</html>
